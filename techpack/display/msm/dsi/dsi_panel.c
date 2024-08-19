@@ -390,7 +390,7 @@ static int dsi_panel_power_off(struct dsi_panel *panel)
 	if (gpio_is_valid(panel->reset_config.disp_en_gpio))
 		gpio_set_value(panel->reset_config.disp_en_gpio, 0);
 
-        if (panel->mi_panel_id == 0x4D323000360200 || panel->mi_panel_id == 0x4D323000420D00) {
+        if (panel->mi_panel_id == 0x4C3900420200) {
                 mdelay(5);
         }
 
@@ -2005,7 +2005,6 @@ const char *cmd_set_prop_map[DSI_CMD_SET_MAX] = {
 	"mi,mdss-dsi-local-hbm-off-to-normal-command",
 	"mi,mdss-dsi-local-hbm-off-to-hlpm-command",
 	"mi,mdss-dsi-fps-120-gamma-command",
-	"mi,mdss-dsi-fps-90-gamma-command",
 	"mi,mdss-dsi-fps-60-gamma-command",
 };
 
@@ -2042,7 +2041,6 @@ const char *cmd_set_state_map[DSI_CMD_SET_MAX] = {
 	"mi,mdss-dsi-local-hbm-off-to-normal-command-state",
 	"mi,mdss-dsi-local-hbm-off-to-hlpm-command-state",
 	"mi,mdss-dsi-fps-120-gamma-command-state",
-	"mi,mdss-dsi-fps-90-gamma-command-state",
 	"mi,mdss-dsi-fps-60-gamma-command-state",
 };
 
@@ -5081,9 +5079,6 @@ int dsi_panel_gamma_switch(struct dsi_panel *panel)
         case 120:
             rc = dsi_panel_tx_cmd_set(panel, DSI_CMD_SET_MI_FPS_120_GAMMA);
             break;
-        case 90:
-            rc = dsi_panel_tx_cmd_set(panel, DSI_CMD_SET_MI_FPS_90_GAMMA);
-            break;
         case 60:
             rc = dsi_panel_tx_cmd_set(panel, DSI_CMD_SET_MI_FPS_60_GAMMA);
             break;
@@ -5165,7 +5160,7 @@ int dsi_panel_post_enable(struct dsi_panel *panel)
 error:
 	mutex_unlock(&panel->panel_lock);
 
-	if (panel->mi_panel_id == 0x4D323000360200 || panel->mi_panel_id == 0x4D323000420D00) {
+	if (panel->mi_panel_id == 0x4C3900420200) {
 		dsi_panel_gamma_switch(panel);
 	}
 
