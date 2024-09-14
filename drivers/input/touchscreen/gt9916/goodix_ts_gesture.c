@@ -2,9 +2,7 @@
  * Goodix Gesture Module
  *
  * Copyright (C) 2019 - 2020 Goodix, Inc.
-  *
-  * Copyright (C) 2022 XiaoMi, Inc.
-  * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
@@ -66,6 +64,7 @@ int goodix_gesture_enable(int enable)
 	if (!module_initialized)
 		return 0;
 
+	ts_info("enable is %d",enable);
 	if (enable) {
 		if (atomic_read(&gsx_gesture->registered))
 			ts_info("gesture module has been already registered");
@@ -336,6 +335,8 @@ static int gsx_gesture_ist(struct goodix_ts_core *cd,
 re_send_ges_cmd:
 	if (hw_ops->gesture(cd, 0))
 		ts_info("warning: failed re_send gesture cmd");
+	if (!cd->tools_ctrl_sync)
+		hw_ops->after_event_handler(cd);
 
 	mutex_unlock(&cd->report_mutex);
 
