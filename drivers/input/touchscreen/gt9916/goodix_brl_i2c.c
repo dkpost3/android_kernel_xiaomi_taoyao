@@ -2,6 +2,8 @@
   * Goodix Touchscreen Driver
   * Copyright (C) 2020 - 2021 Goodix, Inc.
   *
+  * Copyright (C) 2022 XiaoMi, Inc.
+  * 
   * This program is free software; you can redistribute it and/or modify
   * it under the terms of the GNU General Public License as published by
   * the Free Software Foundation; either version 2 of the License, or
@@ -192,17 +194,10 @@ static int goodix_i2c_probe(struct i2c_client *client,
 	goodix_pdev->name = GOODIX_CORE_DRIVER_NAME;
 	goodix_pdev->id = 0;
 	goodix_pdev->num_resources = 0;
-	/*
-	 * you can find this platform dev in
-	 * /sys/devices/platform/goodix_ts.0
-	 * goodix_pdev->dev.parent = &client->dev;
-	 */
+
 	goodix_pdev->dev.platform_data = &goodix_i2c_bus;
 	goodix_pdev->dev.release = goodix_pdev_release;
 
-	/* register platform device, then the goodix_ts_core
-	 * module will probe the touch device.
-	 */
 	ret = platform_device_register(goodix_pdev);
 	if (ret) {
 		ts_err("failed register goodix platform device, %d", ret);
@@ -243,7 +238,6 @@ MODULE_DEVICE_TABLE(i2c, i2c_id_table);
 static struct i2c_driver goodix_i2c_driver = {
 	.driver = {
 		.name = TS_DRIVER_NAME,
-		//.owner = THIS_MODULE,
 		.of_match_table = of_match_ptr(i2c_matchs),
 	},
 	.probe = goodix_i2c_probe,

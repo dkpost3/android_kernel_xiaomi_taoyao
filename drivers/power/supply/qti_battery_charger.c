@@ -30,6 +30,29 @@
 #include "qti_battery_charger.h"
 #include "qti_typec_class.h"
 
+#include <linux/notifier.h>
+
+static BLOCKING_NOTIFIER_HEAD(mi_disp_notifier_list);
+
+int mi_disp_register_client(struct notifier_block *nb)
+{
+	return blocking_notifier_chain_register(&mi_disp_notifier_list, nb);
+}
+EXPORT_SYMBOL(mi_disp_register_client);
+
+/**
+ * mi_drm_unregister_client - unregister a client notifier
+ * @nb: notifier block to callback on events
+ *
+ * This function unregisters the callback function from
+ * msm_drm_notifier_list.
+ */
+int mi_disp_unregister_client(struct notifier_block *nb)
+{
+	return blocking_notifier_chain_unregister(&mi_disp_notifier_list, nb);
+}
+EXPORT_SYMBOL(mi_disp_unregister_client);
+
 static const int battery_prop_map[BATT_PROP_MAX] = {
 	[BATT_STATUS]		= POWER_SUPPLY_PROP_STATUS,
 	[BATT_HEALTH]		= POWER_SUPPLY_PROP_HEALTH,

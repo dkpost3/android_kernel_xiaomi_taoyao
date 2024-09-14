@@ -2,6 +2,8 @@
   * Goodix Touchscreen Driver
   * Copyright (C) 2020 - 2021 Goodix, Inc.
   *
+  * Copyright (C) 2022 XiaoMi, Inc.
+  *
   * This program is free software; you can redistribute it and/or modify
   * it under the terms of the GNU General Public License as published by
   * the Free Software Foundation; either version 2 of the License, or
@@ -38,20 +40,7 @@ static struct platform_device *goodix_pdev;
 struct goodix_bus_interface goodix_spi_bus;
 struct device *global_spi_parent_device;
 bool display_name_status = false;
-//static int __init setup_get_display_cmdline(char *str)
-//{
-//	pr_info("get display cmdline");
-//	if (str == NULL)
-//		return -EINVAL;
-//	if (!strncmp(str, "qcom,mdss_dsi_l10a_42_02_0a_dsc_cmd", 36)) {
-//		display_name_status = true;
-//		pr_info("get true cmdline");
-//		return 0;
-//	}
-//	display_name_status = false;
-//	return -EINVAL;
-//}
-//__setup(" msm_drm.dsi_display0=", setup_get_display_cmdline);
+
 /**
  * goodix_spi_read_bra- read device register through spi bus
  * @dev: pointer to device data
@@ -274,17 +263,10 @@ static int goodix_spi_probe(struct spi_device *spi)
 	goodix_pdev->name = GOODIX_CORE_DRIVER_NAME;
 	goodix_pdev->id = 0;
 	goodix_pdev->num_resources = 0;
-	/*
-	 * you can find this platform dev in
-	 * /sys/devices/platfrom/goodix_ts.0
-	 * goodix_pdev->dev.parent = &client->dev;
-	 */
+
 	goodix_pdev->dev.platform_data = &goodix_spi_bus;
 	goodix_pdev->dev.release = goodix_pdev_release;
 
-	/* register platform device, then the goodix_ts_core
-	 * module will probe the touch deivce.
-	 */
 	ret = platform_device_register(goodix_pdev);
 	if (ret) {
 		ts_err("failed register goodix platform device, %d", ret);
@@ -327,7 +309,6 @@ static const struct spi_device_id spi_id_table[] = {
 static struct spi_driver goodix_spi_driver = {
 	.driver = {
 		.name = TS_DRIVER_NAME,
-		//.owner = THIS_MODULE,
 		.of_match_table = spi_matchs,
 	},
 	.id_table = spi_id_table,

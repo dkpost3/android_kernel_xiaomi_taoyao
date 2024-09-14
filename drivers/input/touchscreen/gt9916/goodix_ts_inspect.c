@@ -2,6 +2,8 @@
   * Goodix Touchscreen Driver
   * Copyright (C) 2020 - 2021 Goodix, Inc.
   *
+  * Copyright (C) 2022 XiaoMi, Inc.
+  * 
   * This program is free software; you can redistribute it and/or modify
   * it under the terms of the GNU General Public License as published by
   * the Free Software Foundation; either version 2 of the License, or
@@ -320,18 +322,22 @@ static int cal_cha_to_cha_res(struct goodix_ts_test *ts_test, int v1, int v2)
 		return (v1 - v2) * 63 / v2;
 	else if (ts_test->ts->bus->ic_type == IC_TYPE_BERLIN_B)
 		return (v1 - v2) * 74 / v2 + 20;
-	else
+	else if (ts_test->ts->bus->ic_type == IC_TYPE_BERLIN_D)
 		return (v1 / v2 - 1) * 70 + 59;
+	else
+		return (v1 / v2 - 1) * 55 + 45;
 }
 
 static int cal_cha_to_avdd_res(struct goodix_ts_test *ts_test, int v1, int v2)
 {
 	if (ts_test->ts->bus->ic_type == IC_TYPE_BERLIN_A)
-		return 125 * 1024 * (100 * v2 - 125) * 40 / (10000 * v1) - 40;
+		return 64 * (2 * v2 - 25) * 40 / v1 - 40;
 	else if (ts_test->ts->bus->ic_type == IC_TYPE_BERLIN_B)
-		return 125 * 1024 * (100 * v2 - 125) * 99 / (10000 * v1) - 60;
+		return 64 * (2 * v2 - 25) * 99 / v1 - 60;
+	else if (ts_test->ts->bus->ic_type == IC_TYPE_BERLIN_D)
+		return 64 * (2 * v2 - 25) * 93 / v1 - 20;
 	else
-		return 125 * 1024 * (100 * v2 - 125) * 93 / (10000 * v1) - 20;
+		return 64 * (2 * v2 - 25) * 76 / v1 - 15;
 }
 
 static int cal_cha_to_gnd_res(struct goodix_ts_test *ts_test, int v)
@@ -340,8 +346,10 @@ static int cal_cha_to_gnd_res(struct goodix_ts_test *ts_test, int v)
 		return 64148 / v - 40;
 	else if (ts_test->ts->bus->ic_type == IC_TYPE_BERLIN_B)
 		return 150500 / v - 60;
-	else
+	else if (ts_test->ts->bus->ic_type == IC_TYPE_BERLIN_D)
 		return 145000 / v - 15;
+	else
+		return 120000 / v - 16;
 }
 
 static int ts_test_reset(struct goodix_ts_test *ts_test,
@@ -1317,7 +1325,6 @@ static void goodix_shortcircut_test(struct goodix_ts_test *ts_test)
 	u8 status;
 	int ic_type = ts_test->ts->bus->ic_type;
 	struct goodix_ts_cmd test_parm_cmd;
-	// u8 test_param[6];
 
 	ts_info("---------------------- short_test begin ----------------------");
 	ret = goodix_short_test_prepare(ts_test);
@@ -1361,13 +1368,6 @@ static void goodix_shortcircut_test(struct goodix_ts_test *ts_test)
 			return;
 		}
 	} else {
-		// test_param[0] = ts_test->test_params.params_info->dft_short_threshold & 0xFF;
-		// test_param[1] = (ts_test->test_params.params_info->dft_short_threshold >> 8) & 0xFF;
-		// test_param[2] = ts_test->test_params.params_info->short_diffcode_threshold & 0xFF;
-		// test_param[3] = (ts_test->test_params.params_info->short_diffcode_threshold >> 8) & 0xFF;
-		// test_param[4] = ts_test->test_params.params_info->short_test_dump_num & 0xFF;
-		// test_param[5] = (ts_test->test_params.params_info->short_test_dump_num >> 8) & 0xFF;
-		// ts_test_write(ts_test, SHORT_TEST_THRESHOLD_REG, test_param, sizeof(test_param));
 		status = 0;
 		ts_test_write(ts_test, SHORT_TEST_RUN_REG, &status, 1);
 	}
@@ -1828,7 +1828,7 @@ static int goodix_analysis_noisedata(struct goodix_ts_test *ts_test)
 		ts_err("noisedata have %d frames out of range", err_cnt);
 
 	err_cnt *= 100;
-	if (err_cnt > times * 100 * 2 / 10)
+	if (err_cnt > times * 100 * 1 / 10)
 		return -EINVAL;
 
 	return 0;
@@ -2691,7 +2691,7 @@ static void goodix_save_result_data(struct goodix_ts_test *ts_test)
 save_end:
 	filp_close(fp, NULL);
 }
-#endif // SAVE_IN_CSV
+#endif
 
 static void goodix_put_test_result(struct goodix_ts_test *ts_test,
 		struct ts_rawdata_info *info)
@@ -2961,7 +2961,7 @@ int inspect_module_init(void)
 	/* create sysfs */
 	ret = sysfs_create_file(def_kobj, &dev_attr_get_rawdata.attr);
 	if (ret < 0) {
-		ts_err("create sysfs of get_rawdata failed");
+		ts_err("create sysfs of get_rawdata failed, error id %d", ret);
 		goto err_out;
 	}
 

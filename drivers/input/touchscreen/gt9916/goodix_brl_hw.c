@@ -2,6 +2,8 @@
   * Goodix Touchscreen Driver
   * Copyright (C) 2020 - 2021 Goodix, Inc.
   *
+  * Copyright (C) 2022 XiaoMi, Inc.
+  * 
   * This program is free software; you can redistribute it and/or modify
   * it under the terms of the GNU General Public License as published by
   * the Free Software Foundation; either version 2 of the License, or
@@ -40,7 +42,7 @@
 #define GOODIX_IC_INFO_MAX_LEN		1024
 #define GOODIX_IC_INFO_ADDR_BRA		0x10068
 #define GOODIX_IC_INFO_ADDR			0x10070
-
+#define GOODIX_IC_AVDD_POWER_ONOFF 1
 
 enum brl_request_code {
 	BRL_REQUEST_CODE_CONFIG = 0x01,
@@ -172,63 +174,27 @@ static int brl_reset_after(struct goodix_ts_core *cd)
 static int brl_power_on(struct goodix_ts_core *cd, bool on)
 {
 	int ret = 0;
-	int iovdd_gpio = cd->board_data.iovdd_gpio;
 	int avdd_gpio = cd->board_data.avdd_gpio;
 	int reset_gpio = cd->board_data.reset_gpio;
 
-	if (!cd->avdd || !cd->iovdd) {
-		/* if no regulator set, only set the reset gpio value */
-		if (on) {
-			if (avdd_gpio > 0 && iovdd_gpio > 0) {
-				gpio_direction_output(iovdd_gpio, 1);
-				usleep_range(3000, 3100);
-				gpio_direction_output(avdd_gpio, 1);
-				usleep_range(15000, 15100);
-			}
-			gpio_direction_output(reset_gpio, 1);
-			ret = brl_reset_after(cd);
-			if (ret < 0) {
-				ts_err("reset_after process failed");
-				gpio_direction_output(reset_gpio, 0);
-				if (avdd_gpio > 0 && iovdd_gpio > 0) {
-					gpio_direction_output(iovdd_gpio, 0);
-					gpio_direction_output(avdd_gpio, 0);
-				}
-				return ret;
-			}
-			msleep(GOODIX_NORMAL_RESET_DELAY_MS);
-		} else {
-			gpio_direction_output(reset_gpio, 0);
-			if (avdd_gpio > 0 && iovdd_gpio > 0) {
-				gpio_direction_output(iovdd_gpio, 0);
-				gpio_direction_output(avdd_gpio, 0);
-			}
-			usleep_range(10000, 11000);
-		}
-		return 0;
-	}
-
 	if (on) {
-		/* must guarantee iovdd enbaled before avdd */
+		ts_info("iovdd enbaled before avdd");
 		ret = regulator_enable(cd->iovdd);
 		if (ret) {
 			ts_err("Failed to enable iovdd:%d", ret);
 			return ret;
 		}
+		ts_info("iovdd regulator enbaled success");
 		usleep_range(3000, 3100);
-		ret = regulator_enable(cd->avdd);
-		if (ret) {
-			regulator_disable(cd->iovdd);
-			ts_err("Failed to enable avdd:%d", ret);
-			return ret;
-		}
-		ts_info("regulator enable SUCCESS");
+		gpio_direction_output(avdd_gpio, 1);
+		ts_info("avdd gpio init success");
 		usleep_range(15000, 15100);
 		gpio_direction_output(reset_gpio, 1);
+		ts_info("reset gpio init success");
 		ret = brl_reset_after(cd);
 		if (ret < 0) {
-			ts_err("reset_after process failed,ret=%d", ret);
-			gpio_direction_output(reset_gpio, 0);
+			ts_err("reset_after process failed");
+			gpio_direction_output(avdd_gpio, 0);
 			return ret;
 		}
 		msleep(GOODIX_NORMAL_RESET_DELAY_MS);
@@ -240,12 +206,11 @@ static int brl_power_on(struct goodix_ts_core *cd, bool on)
 	ret = regulator_disable(cd->iovdd);
 	if (ret)
 		ts_err("Failed to disable iovdd:%d", ret);
-	ret = regulator_disable(cd->avdd);
-	if (ret)
-		ts_err("Failed to disable avdd:%d", ret);
+	gpio_direction_output(avdd_gpio, 0);
 	usleep_range(10000, 11000);
-
+	
 	return ret;
+
 }
 
 #define GOODIX_SLEEP_CMD	0x84
@@ -1111,12 +1076,9 @@ static void goodix_parse_pen(struct goodix_pen_data *pen_data,
 	}
 }
 
-static int goodix_touch_handler(struct goodix_ts_core *cd,
-				struct goodix_ts_event *ts_event,
+static int goodix_touch_handler(struct goodix_ts_event *ts_event,
 				u8 *pre_buf, u32 pre_buf_len)
 {
-	struct goodix_ts_hw_ops *hw_ops = cd->hw_ops;
-	struct goodix_ic_info_misc *misc = &cd->ic_info.misc;
 	struct goodix_touch_data *touch_data = &ts_event->touch_data;
 	struct goodix_pen_data *pen_data = &ts_event->pen_data;
 	static u8 buffer[IRQ_EVENT_HEAD_LEN +
@@ -1137,15 +1099,6 @@ static int goodix_touch_handler(struct goodix_ts_core *cd,
 	if (touch_num > GOODIX_MAX_TOUCH) {
 		ts_debug("invalid touch num %d", touch_num);
 		return -EINVAL;
-	}
-	if (unlikely(touch_num > 2)) {
-		ret = hw_ops->read(cd,misc->touch_data_addr +
-			pre_buf_len,&buffer[pre_buf_len],
-			(touch_num - 2) * BYTES_PER_POINT + 2 + 8);
-		if (ret) {
-			ts_debug("failed get touch data");
-			return ret;
-		}
 	}
 
 	if (touch_num > 0) {
@@ -1210,13 +1163,14 @@ static int brl_event_handler(struct goodix_ts_core *cd,
 	struct goodix_ts_hw_ops *hw_ops = cd->hw_ops;
 	struct goodix_ic_info_misc *misc = &cd->ic_info.misc;
 	int pre_read_len;
-	u8 pre_buf[32];
+	u8 pre_buf[IRQ_EVENT_HEAD_LEN + BYTES_PER_POINT * 10 + COOR_DATA_CHECKSUM_SIZE];
 	u8 event_status;
 	u8 large_touch_status;
+	static u8 prev_large_status = 0;
+	u8 curr_large_status;
 	int ret;
 
-	pre_read_len = IRQ_EVENT_HEAD_LEN +
-		BYTES_PER_POINT * 2 + COOR_DATA_CHECKSUM_SIZE;
+	pre_read_len = sizeof(pre_buf);
 	ret = hw_ops->read(cd, misc->touch_data_addr,
 			   pre_buf, pre_read_len);
 	if (ret) {
@@ -1227,12 +1181,16 @@ static int brl_event_handler(struct goodix_ts_core *cd,
 	if (checksum_cmp(pre_buf, IRQ_EVENT_HEAD_LEN, CHECKSUM_MODE_U8_LE)) {
 		ts_err("touch head checksum err");
 		ts_err("touch_head %*ph", IRQ_EVENT_HEAD_LEN, pre_buf);
-		ts_event->retry = 1;
 		return -EINVAL;
 	}
+	/* read done */
+	if (cd->tools_ctrl_sync == 0)
+		hw_ops->after_event_handler(cd);
+		
 	large_touch_status = pre_buf[2];
 	event_status = pre_buf[0];
-	ts_info("event_status = %d\n",event_status);
+	ts_debug("event_status = %d\n",event_status);
+	ts_debug("touch_info %*ph", pre_read_len, pre_buf);
 	memcpy (ts_event->touch_data.tmp_data,pre_buf,32*sizeof(u8));
 
 	if (event_status & GOODIX_POWERON_FOD_EVENT){
@@ -1241,7 +1199,7 @@ static int brl_event_handler(struct goodix_ts_core *cd,
 	}
 
 	if (event_status & GOODIX_TOUCH_EVENT)
-		goodix_touch_handler(cd, ts_event, pre_buf, pre_read_len);
+		goodix_touch_handler(ts_event, pre_buf, pre_read_len);
 
 	if (event_status & GOODIX_REQUEST_EVENT) {
 		ts_event->event_type = EVENT_REQUEST;
@@ -1259,10 +1217,32 @@ static int brl_event_handler(struct goodix_ts_core *cd,
 
 	if (cd->palm_status) {
 		if (large_touch_status & GOODIX_LRAGETOUCH_EVENT) {
+			curr_large_status = 1;
+			if (prev_large_status != curr_large_status)
+				ts_info("palm_status = %d, large touch status is 0x%x, update_palm_sensor_value=1",
+						cd->palm_status, large_touch_status);
+			prev_large_status = curr_large_status;
 			update_palm_sensor_value(1);
 			return ret;
 		} else {
+			curr_large_status = 0;
+			if (prev_large_status != curr_large_status)
+				ts_info("palm_status = %d, large touch status is 0x%x, update_palm_sensor_value=0", 
+						cd->palm_status, large_touch_status);
+			prev_large_status = curr_large_status;
 			update_palm_sensor_value(0);
+		}
+	} else {
+		if (large_touch_status & GOODIX_LRAGETOUCH_EVENT) {
+			curr_large_status = 1;
+			if (prev_large_status != curr_large_status)
+				ts_info("palm_status = %d, large touch status is 0x%x", cd->palm_status, large_touch_status);
+			prev_large_status = curr_large_status;
+		} else {
+			curr_large_status = 0;
+			if (prev_large_status != curr_large_status)
+				ts_info("palm_status = %d, large touch status is 0x%x", cd->palm_status, large_touch_status);
+			prev_large_status = curr_large_status;
 		}
 	}
 
@@ -1505,7 +1485,7 @@ static int brl_charger_on(struct goodix_ts_core *cd, bool on)
 	cmd.cmd = GOODIX_CHARGER_CMD;
 	cmd.len = 5;
 	cmd.data[0] = (on == true) ? 1 : 0;
-	/* ts_info("gesture data :%*ph", 8, cmd.buf); */
+
 	if (cd->hw_ops->send_cmd(cd, &cmd)) {
 		ts_err("failed send charger cmd, on = %d", on);
 		return -EINVAL;
@@ -1524,7 +1504,7 @@ static int brl_palm_on(struct goodix_ts_core *cd, bool on)
 	cmd.cmd = GOODIX_PALM_CMD;
 	cmd.len = 5;
 	cmd.data[0] = (on == true) ? 1 : 0;
-	/* ts_info("gesture data :%*ph", 8, cmd.buf); */
+
 	if (cd->hw_ops->send_cmd(cd, &cmd)) {
 		ts_err("failed send palm cmd, on = %d", on);
 		return -EINVAL;

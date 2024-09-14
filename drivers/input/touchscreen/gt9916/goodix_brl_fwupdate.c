@@ -2,6 +2,8 @@
   * Goodix Touchscreen Driver
   * Copyright (C) 2020 - 2021 Goodix, Inc.
   *
+  * Copyright (C) 2022 XiaoMi, Inc.
+  * 
   * This program is free software; you can redistribute it and/or modify
   * it under the terms of the GNU General Public License as published by
   * the Free Software Foundation; either version 2 of the License, or
@@ -180,7 +182,6 @@ struct  firmware_summary {
 	u8 protocol_ver;
 	u8 bus_type;
 	u8 flash_protect;
-	// u8 reserved[8];
 	struct fw_subsys_info subsys[FW_SUBSYS_MAX_NUM];
 };
 #pragma pack()
@@ -211,7 +212,6 @@ struct goodix_flash_cmd {
 			u8 fw_type;
 			u16 fw_len;
 			u32 fw_addr;
-			//u16 checksum;
 		};
 		u8 buf[16];
 	};
@@ -311,8 +311,6 @@ static int goodix_reg_read(unsigned int addr,
  *	and firmware data.
  * return: 0 - OK, < 0 - error
  */
-/* sizeof(length) + sizeof(checksum) */
-
 static int goodix_parse_firmware(struct firmware_data *fw_data)
 {
 	const struct firmware *firmware;
@@ -807,11 +805,6 @@ static int goodix_flash_subsystem(struct fw_subsys_info *subsys)
 	u8 *fw_packet = NULL;
 	int r = 0;
 
-	/*
-	 * if bus(i2c/spi) error occued, then exit, we will do
-	 * hardware reset and re-prepare ISP and then retry
-	 * flashing
-	 */
 	total_size = subsys->size;
 	fw_packet = kzalloc(ISP_MAX_BUFFERSIZE + 4, GFP_KERNEL);
 	if (!fw_packet) {
@@ -840,7 +833,7 @@ static int goodix_flash_subsystem(struct fw_subsys_info *subsys)
 		}
 		offset += data_size;
 		total_size -= data_size;
-	} /* end while */
+	}
 
 	kfree(fw_packet);
 	return r;
@@ -861,10 +854,6 @@ static int goodix_flash_firmware(struct fw_update_ctrl *fw_ctrl)
 	u32 config_data_reg = fw_ctrl->update_info->config_data_reg;
 	int retry = GOODIX_BUS_RETRY_TIMES;
 	int i, r = 0, fw_num;
-
-	/*	start from subsystem 1,
-	 *	subsystem 0 is the ISP program
-	 */
 
 	fw_summary = &fw_data->fw_summary;
 	fw_num = fw_summary->subsys_num;
@@ -894,7 +883,7 @@ static int goodix_flash_firmware(struct fw_update_ctrl *fw_ctrl)
 			retry--;
 			ts_err("--- End flash subsystem%d: Fail, errno:%d, retry:%d ---",
 				i, r, GOODIX_BUS_RETRY_TIMES - retry);
-		} else if (r < 0) { /* bus error */
+		} else if (r < 0) {
 			ts_err("--- End flash subsystem%d: Fatal error:%d exit ---",
 				i, r);
 			goto exit_flash;
