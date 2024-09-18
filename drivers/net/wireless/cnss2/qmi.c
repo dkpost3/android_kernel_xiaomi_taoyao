@@ -14,15 +14,6 @@
 #include "qmi.h"
 #include "genl.h"
 
-#define HW_MAJOR_VERSION_SHIFT      16
-#define HW_MINOR_VERSION_SHIFT      0
-#define HW_COUNTRY_VERSION_SHIFT    20
-#define HW_BUILD_VERSION_SHIFT      16
-#define HW_MAJOR_VERSION_MASK       0xFFFF0000
-#define HW_MINOR_VERSION_MASK       0x0000FFFF
-#define HW_COUNTRY_VERSION_MASK     0xFFF00000
-#define HW_BUILD_VERSION_MASK       0x000F0000
-
 #define WLFW_SERVICE_INS_ID_V01		1
 #define WLFW_CLIENT_ID			0x4b4e454c
 #define BDF_FILE_NAME_PREFIX		"bdwlan"
@@ -88,48 +79,6 @@ void cnss_ignore_qmi_failure(bool ignore)
 #define CNSS_QMI_ASSERT() do { } while (0)
 void cnss_ignore_qmi_failure(bool ignore) { }
 #endif
-
-static uint project;
-module_param(project, uint, 0444);
-
-static uint hwid_value;
-module_param(hwid_value, uint, 0444);
-
-uint32_t get_hw_version_platform(void)
-{
-	return project;
-}
-EXPORT_SYMBOL(get_hw_version_platform);
-
-uint32_t get_hw_id_value(void)
-{
-	return hwid_value;
-}
-EXPORT_SYMBOL(get_hw_id_value);
-
-uint32_t get_hw_country_version(void)
-{
-	return (hwid_value & HW_COUNTRY_VERSION_MASK) >> HW_COUNTRY_VERSION_SHIFT;
-}
-EXPORT_SYMBOL(get_hw_country_version);
-
-uint32_t get_hw_version_major(void)
-{
-	return (hwid_value & HW_MAJOR_VERSION_MASK) >> HW_MAJOR_VERSION_SHIFT;
-}
-EXPORT_SYMBOL(get_hw_version_major);
-
-uint32_t get_hw_version_minor(void)
-{
-	return (hwid_value & HW_MINOR_VERSION_MASK) >> HW_MINOR_VERSION_SHIFT;
-}
-EXPORT_SYMBOL(get_hw_version_minor);
-
-uint32_t get_hw_version_build(void)
-{
-	return (hwid_value & HW_BUILD_VERSION_MASK) >> HW_BUILD_VERSION_SHIFT;
-}
-EXPORT_SYMBOL(get_hw_version_build);
 
 static char *cnss_qmi_mode_to_str(enum cnss_driver_mode mode)
 {

@@ -337,7 +337,7 @@
 			output-low;
 			power-source = <1>;
 		};
-
+	
 		pdlc_gpio_active: pdlc_gpio_active {
 			pins = "gpio8";
 			function = "normal";
@@ -345,7 +345,7 @@
 			output-high;
 			power-source = <1>;
 		};
-
+	
 };
 
 &pm8350c_gpios {
@@ -356,7 +356,7 @@
 			output-low;
 			power-source = <1>;
 		};
-
+	
 		awinicl_gpio_reset_output_high: awinicl_gpio_reset_output_high {
 			pins = "gpio6";
 			function = "normal";
@@ -746,20 +746,17 @@
 		goodix,firmware-name = "goodix_firmware_l9.bin";
 		goodix,config-name = "goodix_cfg_group_l9.bin";
 
+		goodix,avdd-name = "avdd";
 		goodix,iovdd-name = "vdd";
-		goodix,avdd-gpio = <&tlmm 107 0x00>;
+		avdd-supply = <&L7C>;
 		vdd-supply = <&L2C>;
-		focaltech,max-touch-number = <10>;
-		focaltech,super-resolution-factors = <10>;
-		focaltech,display-coords = <0 0 10800 24000>;
-		focaltech,irq-gpio = <&tlmm 81 0x2808>;
-		focaltech,reset-gpio = <&tlmm 105 0x00>;
+		focaltech,avdd-name = "avdd";
 		focaltech,iovdd-name = "iovdd";
-		focaltech,avdd-gpio = <&tlmm 107 0x00>;
-		focaltech,touch-range-array = <1 5 10 15 20>;
-		focaltech,touch-def-array = <4 3 3 3>;
-		focaltech,touch-expert-array = <10 15 10 10 20 15 15 10 15 15 20 10>;
 		iovdd-supply = <&L2C>;
+		focaltech,reset-gpio = <&tlmm 105 0x00>;
+		focaltech,irq-gpio = <&tlmm 81 0x2808>;
+		focaltech,max-touch-number = <10>;
+		focaltech,display-coords =  <0 0 10800 24000>;
 	};
 };
 

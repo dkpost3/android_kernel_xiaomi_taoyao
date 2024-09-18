@@ -658,4 +658,3 @@ int sde_dsc_create_pps_buf_cmd(struct msm_display_dsc_info *dsc_info,
 
 	return 0;
 }
-

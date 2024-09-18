@@ -1648,7 +1648,7 @@ void sde_encoder_control_idle_pc(struct drm_encoder *drm_enc, bool enable)
 	SDE_EVT32(sde_enc->idle_pc_enabled);
 }
 
-static void _sde_encoder_set_rc_state(struct sde_encoder_virt *sde_enc,
+void _sde_encoder_set_rc_state(struct sde_encoder_virt *sde_enc,
 	enum sde_enc_rc_states rc_state)
 {
 	struct drm_encoder *drm_enc = &sde_enc->base;
@@ -4346,7 +4346,7 @@ void sde_encoder_kickoff(struct drm_encoder *drm_enc, bool is_error,
 
 	if (dsi_display && dsi_display->panel
 		&& sde_enc->disp_info.intf_type == DRM_MODE_CONNECTOR_DSI
-		&& (dsi_display->panel->mi_panel_id == 0x4C39004202)
+		&& (dsi_display->panel->mi_panel_id == 0x4C3900420200 || dsi_display->panel->mi_panel_id == 0x4C3900360200)
 		&& adj_mode.dsi_mode_flags & DSI_MODE_FLAG_VRR) {
 		dsi_panel_gamma_switch(dsi_display->panel);
 	}

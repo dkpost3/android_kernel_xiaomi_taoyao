@@ -641,7 +641,6 @@ static inline bool sde_encoder_is_widebus_enabled(struct drm_encoder *drm_enc)
 	return sde_enc->mode_info.wide_bus_en;
 }
 
-
 /**
  * sde_encoder_trigger_early_wakeup - trigger early wake up
  * @drm_enc:    Pointer to drm encoder structure

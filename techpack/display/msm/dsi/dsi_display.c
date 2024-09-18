@@ -8527,7 +8527,7 @@ int dsi_display_enable(struct dsi_display *display)
 		goto error;
 	}
 
-	if (display->panel->mi_panel_id == 0x4C39004202) {
+	if (display->panel->mi_panel_id == 0x4C3900420200 || display->panel->mi_panel_id == 0x4C3900360200) {
 		rc = dsi_panel_gamma_switch(display->panel);
 		if (rc) {
 			DSI_ERR("failed to switch gamma, rc=%d\n",rc);

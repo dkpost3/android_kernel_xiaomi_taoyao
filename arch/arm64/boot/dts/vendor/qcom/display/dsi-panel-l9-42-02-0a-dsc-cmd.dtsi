@@ -182,7 +182,7 @@
 	qcom,esd-aod-check-enabled;
 	qcom,mdss-dsi-display-timings {
 		timing@0{
-			mi,mdss-dsc-panel-id = <0x00004C39 0x00420200>;
+			mi,mdss-dsc-panel-id = <0x00004C39 0x00360200>;
 			mi,mdss-dsi-dimmingon-command = [15 01 00 00 00 00 02 53 28];
 			mi,mdss-dsi-dimmingon-command-state = "dsi_hs_mode";
 			mi,mdss-dsi-dimmingoff-command = [15 01 00 00 00 00 02 53 20];

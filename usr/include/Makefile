@@ -6,7 +6,7 @@
 #
 # -std=c90 (equivalent to -ansi) catches the violation of those.
 # We cannot go as far as adding -Wpedantic since it emits too many warnings.
-UAPI_CFLAGS := -std=c90 -Wall -Werror=implicit-function-declaration -include stdint.h
+UAPI_CFLAGS := -std=c90 -Wall -Werror=implicit-function-declaration
 
 override c_flags = $(UAPI_CFLAGS) -Wp,-MD,$(depfile) -I$(objtree)/usr/include
 
