@@ -225,36 +225,28 @@ static ssize_t early_wakeup_store(struct device *device,
 	struct msm_drm_private *priv;
 	u32 crtc_id;
 	bool trigger;
-
 	if (!device || !buf || !count) {
 		SDE_ERROR("invalid input param(s)\n");
 		return -EINVAL;
 	}
-
 	if (kstrtobool(buf, &trigger) < 0)
 		return -EINVAL;
-
 	if (!trigger)
 		return count;
-
 	crtc = dev_get_drvdata(device);
 	if (!crtc || !crtc->dev || !crtc->dev->dev_private) {
 		SDE_ERROR("invalid crtc\n");
 		return -EINVAL;
 	}
-
 	sde_crtc = to_sde_crtc(crtc);
 	priv = crtc->dev->dev_private;
-
 	crtc_id = drm_crtc_index(crtc);
 	if (crtc_id >= ARRAY_SIZE(priv->disp_thread)) {
 		SDE_ERROR("invalid crtc index[%d]\n", crtc_id);
 		return -EINVAL;
 	}
-
 	kthread_queue_work(&priv->disp_thread[crtc_id].worker,
 			&sde_crtc->early_wakeup_work);
-
 	return count;
 }
 
